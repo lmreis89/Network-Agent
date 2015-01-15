@@ -1,0 +1,141 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.17+ wizard for JavaCC 1.5.0+
+ */options{  JDK_VERSION = "1.5";  static = false;}PARSER_BEGIN(Parser)package parser;
+
+import syntax.Node;
+import syntax.StartNode;
+import syntax.ActionNode;
+import syntax.ActionsNode;
+import syntax.CloneNode;
+import syntax.DefinitionNode;
+import syntax.ExecNode;
+import syntax.HostNodeNode;
+import syntax.MigrateNode;
+import syntax.ParamsNode;
+import syntax.ReportNode;
+import syntax.RunNode;
+import syntax.ComputeNode;
+
+
+public class Parser{  }PARSER_END(Parser)SKIP :{  " "| "\r"| "\t"| "\n"}TOKEN : /* OPERATORS */{  < DEFINITION : "definition" >| < EXECUTE : "execute" >| < REPFINAL : "reportfinal" >| < AGENTID : "agentID" >
+| < AUTHOR : "author" >
+| < AUTHMAIL : "author-email" >
+| < DATE : "date" >
+| < COMMENT : "comment" >
+| < OBS : "obs" >
+| < MIGRATE : "migrate" >
+| < TO : "to" >
+| < TRACE : "trace" >
+| < CLONE : "clone" >
+| < RUN : "run" >
+| < FROM : "from" >
+| < COMPUTE : "compute">
+| < REPCALLBACK : "reportcallback" >
+| < REPMAIL : "reportmail" >
+| < SMTP : "smtp" >
+| < COMMA : "," >
+| < POINT : "." >
+| < DPOINT : ":" >
+| < LPAR : "(" >
+| < RPAR : ")" >
+| < DATE_STRING : "\"" < DIGIT > < DIGIT > < POINT > < DIGIT > < DIGIT > < POINT >< DIGIT > < DIGIT > "\"" >
+| < SEMICOL : ";" >
+}TOKEN :{  < CONSTANT : (< DIGIT >)+ >| < #DIGIT : [ "0"-"9" ] >
+| < #LETTER : [ "a"-"z" ] >
+| < #CAPLET : [ "A"-"Z"] >
+| < DOLLAR : "$" >
+| < CLASSNAME : < DOLLAR > (< LETTER >|< CAPLET >) ( < CAPLET >|< LETTER > | < DIGIT > | < COMMA > )* >
+| < STRING : "\"" (~["\""])+ "\"" >
+
+| < OBRACE : "{" >
+| < CBRACE : "}" >
+| < OUTPUT : "output" >}
+Node main() :
+{ Node e; }
+{
+  e = start() < EOF > { return e; }
+}
+Node start() :{DefinitionNode def; ExecNode exec; boolean repfinal = false;}{
+  < DEFINITION > < OBRACE > def = agentDefinition() < CBRACE > < SEMICOL >
+  < EXECUTE > < OBRACE > exec = exec(new ExecNode()) < CBRACE > < SEMICOL >
+  ( < REPFINAL > { repfinal = true; } )? 	{ 
+	  return new StartNode(def, exec, repfinal);	}}DefinitionNode agentDefinition() :{Token aID, author, authMail, date, comment, obs;}{
+    < AGENTID > < DPOINT > aID = < STRING >
+    < AUTHOR > < DPOINT > author = < STRING >
+    < AUTHMAIL > < DPOINT > authMail = < STRING >
+    < DATE > < DPOINT > date = < DATE_STRING >
+    < COMMENT > < DPOINT > comment = < STRING >
+    < OBS > < DPOINT > obs = < STRING >	{
+ 		return new DefinitionNode(aID.image,author.image,authMail.image,date.image,comment.image,obs.image);
+ 	}}ExecNode exec(ExecNode exec) :{MigrateNode migrate;boolean trace = false; ActionsNode actions; ReportNode report=null; }{
+  (    (      < COMPUTE > (< TRACE > { trace = true;} )?
+  < OBRACE > actions = actions(new ActionsNode()) < CBRACE > ( report = report() )? < SEMICOL >
+  {exec = new ExecNode(new ComputeNode(trace,actions,report));})
+| 
+  	(  	   migrate = migrate() < SEMICOL >		{
+	   		exec.addNode(migrate);
+		}
+	)*
+)
+	{ return exec; }}MigrateNode migrate() :{HostNodeNode host; ActionsNode actions; ReportNode report=null; boolean trace = false, output=false;}{
+  < MIGRATE > < TO > host = hostNode() (< TRACE > { trace = true;} )?
+  < OBRACE > actions = actions(new ActionsNode()) < CBRACE > ( report = report() | < OUTPUT > {output = true;} )?{
+    return new MigrateNode(host,actions,trace,report,output);
+  }}Node compute() :{}{{
+    return null;
+  }}
+
+ActionsNode actions(ActionsNode actions) :
+{ActionNode action;}
+{
+  	(
+  	   action = action(new ActionNode())
+		{
+	   		actions.addNode(action);
+		}
+	)*
+	{
+    	return actions;  	}}
+
+ActionNode action(ActionNode action) :
+{
+  Node subAction; ParamsNode params=null; ExecNode exec; Token classname, urldir = null;}
+{
+   (
+      < CLONE > exec = exec(new ExecNode()) { subAction = new CloneNode(exec);}
+   |
+     < RUN > classname = < CLASSNAME > < LPAR > (params = params())? < RPAR > (< FROM > urldir = < STRING >)?
+     { subAction = new RunNode(classname.image,params,urldir!=null ? urldir.image : null);  }   )
+		{ action.addNode(subAction); }
+	
+  {
+    return action;  }}
+
+ReportNode report() :
+{	Token t=null; String type;
+}
+{
+	(	    < REPCALLBACK > {type = "callback" ; }
+	| < REPMAIL > t= < STRING >  {type = "mail";}  
+	| < REPFINAL > t= < STRING > {type = "repfinal";}
+	)
+		{	    	return new ReportNode(type, t != null ? t.image : null );
+		}}
+
+HostNodeNode hostNode() :
+{
+  Token t;}
+{
+  t = < STRING >
+  {
+    return new HostNodeNode(t.image);  }}
+
+ParamsNode params() :
+{
+  Token t; ParamsNode params = new ParamsNode();}
+{
+  t = < STRING > {params.addParam(t.image);}
+  (< COMMA > t= < STRING > {params.addParam(t.image);})*
+  {
+    return params;  }}
+

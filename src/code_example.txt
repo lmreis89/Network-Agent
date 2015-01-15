@@ -1,0 +1,22 @@
+definition
+{
+	agentID: "adsdsa"
+	author: "eu"
+	author-email: "eu@meumail.eu"
+	date: "12.12.12"
+	comment: "sql agent"
+	obs: "n sei ver"
+};
+
+execute
+{
+	migrate to "PC-A07" trace {
+		run $SQLAction ("jdbc:odbc:corp", "SELECT CustomerID, CompanyName FROM Customers") FROM "PC-112"	
+	} reportcallback ;
+	
+	migrate to "PC-113" {
+		run $SQLAction ("jdbc:odbc:corp", "SELECT CustomerID, CompanyName FROM Customers") FROM "PC-112"	
+	}
+};
+reportfinal
+

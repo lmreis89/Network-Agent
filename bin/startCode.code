@@ -1,0 +1,31 @@
+definition
+{
+	agentID: "007"
+	author: "the author"
+	author-email: "author@mailprovider.tld"
+	date: "09.04.12"
+	comment: "this is an agente"
+	obs: "awesome observation"
+};
+
+execute
+{
+	migrate to "PC-112" trace {
+
+		run $SystemInfoAction () 
+		run $SleepAction ("1") 
+
+		
+	} reportmail "amaral88pedro@gmail.com" ;
+	
+	migrate to "PC-113" trace {
+
+		run $SystemInfoAction () from "PC-112"
+		run $SleepAction ("1") from "PC-112"
+		
+	} reportmail "amaral88pedro@gmail.com"  ;
+	
+	
+};
+
+
